@@ -6,11 +6,28 @@
 
 StreamFlow - это высоконагруженная система для сбора, обработки и анализа потоковых данных в реальном времени. Способна обрабатывать миллионы событий в секунду с минимальной задержкой.
 
+**Версия:** 0.2.0  
+**Статус:** Beta
+
+## Возможности
+
+✅ **HTTP & gRPC Ingestion** - прием событий через REST API и gRPC  
+✅ **Worker Pool** - параллельная обработка на горутинах  
+✅ **ClickHouse Storage** - колоночное хранилище для аналитики  
+✅ **Redis Caching** - real-time статистика и агрегации  
+✅ **Query API** - REST API для получения данных  
+✅ **Prometheus Metrics** - метрики и мониторинг  
+✅ **CLI Tool** - консольное управление  
+✅ **Graceful Shutdown** - безопасное завершение  
+✅ **Docker Compose** - полное dev окружение
+
 ## Архитектура
 
 - **Ingestion Layer** - HTTP/gRPC endpoints для приема событий
 - **Processing Layer** - Worker pool на горутинах для параллельной обработки
 - **Storage Layer** - ClickHouse для аналитических запросов
+- **Cache Layer** - Redis для real-time статистики и агрегаций
+- **Query Layer** - REST API для получения данных
 - **Metrics** - Prometheus + Grafana для мониторинга
 
 ## Быстрый старт

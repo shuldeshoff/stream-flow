@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package streamflow;
+
+option go_package = "github.com/sul/streamflow/pkg/grpc/proto";
+
+import "google/protobuf/timestamp.proto";
+
+service EventIngestion {
+  // Отправка одиночного события
+  rpc SendEvent(Event) returns (EventResponse);
+  
+  // Отправка батча событий
+  rpc SendBatch(EventBatch) returns (BatchResponse);
+  
+  // Stream для непрерывной отправки событий
+  rpc SendStream(stream Event) returns (stream EventResponse);
+}
+
+message Event {
+  string id = 1;
+  string type = 2;
+  string source = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  map<string, string> data = 5;
+  map<string, string> metadata = 6;
+}
+
+message EventBatch {
+  repeated Event events = 1;
+}
+
+message EventResponse {
+  string status = 1;
+  string id = 2;
+  string message = 3;
+}
+
+message BatchResponse {
+  string status = 1;
+  int32 accepted = 2;
+  int32 failed = 3;
+  int32 total = 4;
+}
+

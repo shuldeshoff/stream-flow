@@ -18,6 +18,15 @@ services:
         soft: 262144
         hard: 262144
 
+  redis:
+    image: redis:7-alpine
+    container_name: streamflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
   prometheus:
     image: prom/prometheus:latest
     container_name: streamflow-prometheus
@@ -46,6 +55,7 @@ services:
 
 volumes:
   clickhouse_data:
+  redis_data:
   prometheus_data:
   grafana_data:
 

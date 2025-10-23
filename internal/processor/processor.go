@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/sul/streamflow/internal/cache"
 	"github.com/sul/streamflow/internal/config"
 	"github.com/sul/streamflow/internal/metrics"
 	"github.com/sul/streamflow/internal/models"
@@ -17,6 +18,7 @@ import (
 type EventProcessor struct {
 	config      config.ProcessorConfig
 	storage     storage.Storage
+	cache       *cache.RedisCache
 	eventQueue  chan models.Event
 	batchQueue  chan []models.ProcessedEvent
 	wg          sync.WaitGroup
@@ -32,12 +34,13 @@ type Worker struct {
 	processor *EventProcessor
 }
 
-func NewEventProcessor(cfg config.ProcessorConfig, store storage.Storage) *EventProcessor {
+func NewEventProcessor(cfg config.ProcessorConfig, store storage.Storage, redisCache *cache.RedisCache) *EventProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 	
 	return &EventProcessor{
 		config:     cfg,
 		storage:    store,
+		cache:      redisCache,
 		eventQueue: make(chan models.Event, cfg.BufferSize),
 		batchQueue: make(chan []models.ProcessedEvent, 100),
 		ctx:        ctx,
@@ -161,6 +164,16 @@ func (w *Worker) processEvent(event models.Event) models.ProcessedEvent {
 		metrics.RecordProcessingLatency(time.Since(startTime).Seconds())
 		metrics.IncEventsProcessed()
 	}()
+
+	// Обновляем статистику в Redis
+	if w.processor.cache != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+
+		// Инкрементируем счетчики по типу события и источнику
+		w.processor.cache.IncrementEventTypeStats(ctx, event.Type, 1*time.Minute)
+		w.processor.cache.IncrementSourceStats(ctx, event.Source, 1*time.Minute)
+	}
 
 	// Сериализуем данные и метаданные в JSON
 	dataJSON, _ := json.Marshal(event.Data)

@@ -38,7 +38,7 @@ func TestEventProcessor(t *testing.T) {
 	}
 
 	// Создаем процессор
-	processor := NewEventProcessor(cfg, mockStore)
+	processor := NewEventProcessor(cfg, mockStore, nil)
 	processor.Start()
 	defer processor.Stop()
 
@@ -94,7 +94,7 @@ func BenchmarkEventProcessor(b *testing.B) {
 		FlushTimeout: 5,
 	}
 
-	processor := NewEventProcessor(cfg, mockStore)
+	processor := NewEventProcessor(cfg, mockStore, nil)
 	processor.Start()
 	defer processor.Stop()
 

@@ -10,10 +10,13 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/sul/streamflow/internal/cache"
 	"github.com/sul/streamflow/internal/config"
+	"github.com/sul/streamflow/internal/grpcserver"
 	"github.com/sul/streamflow/internal/ingestion"
 	"github.com/sul/streamflow/internal/metrics"
 	"github.com/sul/streamflow/internal/processor"
+	"github.com/sul/streamflow/internal/query"
 	"github.com/sul/streamflow/internal/storage"
 )
 
@@ -32,6 +35,7 @@ func main() {
 
 	log.Info().
 		Int("http_port", cfg.Server.Port).
+		Int("grpc_port", cfg.GRPC.Port).
 		Int("worker_count", cfg.Processor.WorkerCount).
 		Str("clickhouse_addr", cfg.ClickHouse.Address).
 		Msg("Configuration loaded")
@@ -53,22 +57,55 @@ func main() {
 
 	log.Info().Msg("Storage initialized")
 
+	// Инициализация Redis кэша
+	redisCache, err := cache.NewRedisCache(cfg.Redis.Address, cfg.Redis.Password, cfg.Redis.DB)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to initialize Redis cache, continuing without cache")
+		redisCache = nil
+	}
+	if redisCache != nil {
+		defer redisCache.Close()
+		log.Info().Msg("Redis cache initialized")
+	}
+
 	// Инициализация процессора событий
-	proc := processor.NewEventProcessor(cfg.Processor, store)
+	proc := processor.NewEventProcessor(cfg.Processor, store, redisCache)
 	proc.Start()
 	defer proc.Stop()
 
 	log.Info().Int("workers", cfg.Processor.WorkerCount).Msg("Event processor started")
 
 	// Инициализация HTTP сервера для приема событий
-	server := ingestion.NewHTTPServer(cfg.Server, proc)
+	httpServer := ingestion.NewHTTPServer(cfg.Server, proc)
 	go func() {
-		if err := server.Start(); err != nil {
+		if err := httpServer.Start(); err != nil {
 			log.Fatal().Err(err).Msg("HTTP server failed")
 		}
 	}()
 
 	log.Info().Int("port", cfg.Server.Port).Msg("HTTP ingestion server started")
+
+	// Инициализация gRPC сервера
+	grpcSrv := grpcserver.NewGRPCServer(cfg.GRPC.Port, proc)
+	go func() {
+		if err := grpcSrv.Start(); err != nil {
+			log.Fatal().Err(err).Msg("gRPC server failed")
+		}
+	}()
+
+	log.Info().Int("port", cfg.GRPC.Port).Msg("gRPC server started")
+
+	// Инициализация Query API сервера
+	if redisCache != nil {
+		queryServer := query.NewQueryServer(cfg.Server, store, redisCache)
+		go func() {
+			if err := queryServer.Start(); err != nil {
+				log.Error().Err(err).Msg("Query API server failed")
+			}
+		}()
+
+		log.Info().Int("port", cfg.Server.Port+1).Msg("Query API server started")
+	}
 
 	// Graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -80,9 +117,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := httpServer.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("HTTP server shutdown failed")
 	}
+
+	grpcSrv.Stop()
 
 	log.Info().Msg("StreamFlow stopped")
 	fmt.Println("\n✨ Thanks for using StreamFlow!")

@@ -3,6 +3,7 @@
 # Сборка
 build:
 	go build -o bin/streamflow cmd/streamflow/main.go
+	go build -o bin/streamflow-cli cmd/cli/main.go
 
 # Запуск
 run: build
@@ -42,6 +43,17 @@ fmt:
 # Линтинг
 lint:
 	golangci-lint run
+
+# gRPC proto generation
+proto:
+	./scripts/generate_proto.sh
+
+# CLI commands
+cli-health:
+	./bin/streamflow-cli health
+
+cli-stats:
+	./bin/streamflow-cli stats
 
 # Запуск с зависимостями
 dev: docker-up

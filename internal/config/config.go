@@ -8,8 +8,10 @@ import (
 
 type Config struct {
 	Server     ServerConfig
+	GRPC       GRPCConfig
 	Processor  ProcessorConfig
 	ClickHouse ClickHouseConfig
+	Redis      RedisConfig
 	Metrics    MetricsConfig
 }
 
@@ -17,6 +19,10 @@ type ServerConfig struct {
 	Port         int
 	ReadTimeout  int // seconds
 	WriteTimeout int // seconds
+}
+
+type GRPCConfig struct {
+	Port int
 }
 
 type ProcessorConfig struct {
@@ -34,6 +40,12 @@ type ClickHouseConfig struct {
 	Table    string
 }
 
+type RedisConfig struct {
+	Address  string
+	Password string
+	DB       int
+}
+
 type MetricsConfig struct {
 	Port int
 }
@@ -44,6 +56,9 @@ func Load() (*Config, error) {
 			Port:         getEnvInt("SERVER_PORT", 8080),
 			ReadTimeout:  getEnvInt("SERVER_READ_TIMEOUT", 30),
 			WriteTimeout: getEnvInt("SERVER_WRITE_TIMEOUT", 30),
+		},
+		GRPC: GRPCConfig{
+			Port: getEnvInt("GRPC_PORT", 9000),
 		},
 		Processor: ProcessorConfig{
 			WorkerCount:  getEnvInt("WORKER_COUNT", 10),
@@ -57,6 +72,11 @@ func Load() (*Config, error) {
 			Username: getEnv("CLICKHOUSE_USERNAME", "default"),
 			Password: getEnv("CLICKHOUSE_PASSWORD", ""),
 			Table:    getEnv("CLICKHOUSE_TABLE", "events"),
+		},
+		Redis: RedisConfig{
+			Address:  getEnv("REDIS_ADDRESS", "localhost:6379"),
+			Password: getEnv("REDIS_PASSWORD", ""),
+			DB:       getEnvInt("REDIS_DB", 0),
 		},
 		Metrics: MetricsConfig{
 			Port: getEnvInt("METRICS_PORT", 9090),
