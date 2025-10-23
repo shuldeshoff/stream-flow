@@ -276,5 +276,8 @@ MIT License
 
 ## Автор
 
+**Шульдешов Юрий Леонидович**  
+Telegram: [@shuldeshoff](https://t.me/shuldeshoff)
+
 Создано для изучения высоконагруженных систем на Go
 
