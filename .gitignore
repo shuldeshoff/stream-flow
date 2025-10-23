@@ -34,6 +34,12 @@ Thumbs.db
 .env.local
 *.pem
 
+# TLS certificates (never commit private keys!)
+certs/
+*.key
+*.crt
+*.csr
+
 # Logs
 *.log
 logs/

@@ -2,6 +2,7 @@ package ingestion
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,18 +14,23 @@ import (
 	"github.com/sul/streamflow/internal/models"
 	"github.com/sul/streamflow/internal/processor"
 	"github.com/sul/streamflow/internal/ratelimit"
+	"github.com/sul/streamflow/internal/security"
 )
 
 type HTTPServer struct {
 	config      config.ServerConfig
+	tlsConfig   *tls.Config
+	jwtManager  *security.JWTManager
 	processor   *processor.EventProcessor
 	rateLimiter *ratelimit.RateLimiter
 	server      *http.Server
 }
 
-func NewHTTPServer(cfg config.ServerConfig, proc *processor.EventProcessor, rl *ratelimit.RateLimiter) *HTTPServer {
+func NewHTTPServer(cfg config.ServerConfig, tlsCfg *tls.Config, jwtMgr *security.JWTManager, proc *processor.EventProcessor, rl *ratelimit.RateLimiter) *HTTPServer {
 	return &HTTPServer{
 		config:      cfg,
+		tlsConfig:   tlsCfg,
+		jwtManager:  jwtMgr,
 		processor:   proc,
 		rateLimiter: rl,
 	}
@@ -33,7 +39,7 @@ func NewHTTPServer(cfg config.ServerConfig, proc *processor.EventProcessor, rl *
 func (s *HTTPServer) Start() error {
 	mux := http.NewServeMux()
 	
-	// Основной endpoint для приема событий
+	// Основной endpoint для приема событий (без JWT для обратной совместимости)
 	mux.HandleFunc("/api/v1/events", s.handleEvents)
 	mux.HandleFunc("/api/v1/events/batch", s.handleBatchEvents)
 	
@@ -41,14 +47,29 @@ func (s *HTTPServer) Start() error {
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/ready", s.handleReady)
 
-	s.server = &http.Server{
-		Addr:         fmt.Sprintf(":%d", s.config.Port),
-		Handler:      mux,
-		ReadTimeout:  time.Duration(s.config.ReadTimeout) * time.Second,
-		WriteTimeout: time.Duration(s.config.WriteTimeout) * time.Second,
+	// Применяем JWT middleware если включен
+	var handler http.Handler = mux
+	if s.jwtManager != nil {
+		// Используем optional middleware для обратной совместимости
+		handler = s.jwtManager.OptionalHTTPMiddleware(mux)
+		log.Info().Msg("JWT authentication enabled (optional mode)")
 	}
 
-	log.Info().Msgf("HTTP server listening on :%d", s.config.Port)
+	s.server = &http.Server{
+		Addr:         fmt.Sprintf(":%d", s.config.Port),
+		Handler:      handler,
+		ReadTimeout:  time.Duration(s.config.ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(s.config.WriteTimeout) * time.Second,
+		TLSConfig:    s.tlsConfig,
+	}
+
+	// Запускаем с TLS или без
+	if s.tlsConfig != nil {
+		log.Info().Msgf("HTTPS server listening on :%d (TLS enabled)", s.config.Port)
+		return s.server.ListenAndServeTLS("", "") // Сертификаты уже в TLSConfig
+	}
+
+	log.Warn().Msgf("HTTP server listening on :%d (TLS DISABLED - not recommended for production!)", s.config.Port)
 	return s.server.ListenAndServe()
 }
 

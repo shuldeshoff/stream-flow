@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,15 +12,16 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/sul/streamflow/internal/banking"
 	"github.com/sul/streamflow/internal/cache"
 	"github.com/sul/streamflow/internal/config"
 	"github.com/sul/streamflow/internal/grpcserver"
 	"github.com/sul/streamflow/internal/ingestion"
-	"github.com/sul/streamflow/internal/banking"
 	"github.com/sul/streamflow/internal/metrics"
 	"github.com/sul/streamflow/internal/processor"
 	"github.com/sul/streamflow/internal/query"
 	"github.com/sul/streamflow/internal/ratelimit"
+	"github.com/sul/streamflow/internal/security"
 	"github.com/sul/streamflow/internal/storage"
 	"github.com/sul/streamflow/internal/websocket"
 )
@@ -42,7 +44,36 @@ func main() {
 		Int("grpc_port", cfg.GRPC.Port).
 		Int("worker_count", cfg.Processor.WorkerCount).
 		Str("clickhouse_addr", cfg.ClickHouse.Address).
+		Bool("tls_enabled", cfg.TLS.Enabled).
+		Bool("jwt_enabled", cfg.JWT.Enabled).
 		Msg("Configuration loaded")
+
+	// Инициализация TLS
+	var tlsConfig *tls.Config
+	if cfg.TLS.Enabled {
+		var err error
+		tlsConfig, err = security.LoadTLSConfig(cfg.TLS.CertFile, cfg.TLS.KeyFile, cfg.TLS.CAFile)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to load TLS configuration")
+		}
+		log.Info().Msg("TLS configuration loaded")
+	} else {
+		log.Warn().Msg("TLS is DISABLED - not recommended for production!")
+	}
+
+	// Инициализация JWT Manager
+	var jwtManager *security.JWTManager
+	if cfg.JWT.Enabled {
+		if cfg.JWT.Secret == "" {
+			log.Fatal().Msg("JWT_SECRET is required when JWT is enabled")
+		}
+		var err error
+		jwtManager, err = security.NewJWTManager(cfg.JWT.Secret, cfg.JWT.Expiration, cfg.JWT.Issuer)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to initialize JWT manager")
+		}
+		log.Info().Msg("JWT authentication enabled")
+	}
 
 	// Инициализация метрик
 	metricsServer := metrics.NewServer(cfg.Metrics.Port)
@@ -91,14 +122,18 @@ func main() {
 	}
 
 	// Инициализация HTTP сервера для приема событий
-	httpServer := ingestion.NewHTTPServer(cfg.Server, proc, rateLimiter)
+	httpServer := ingestion.NewHTTPServer(cfg.Server, tlsConfig, jwtManager, proc, rateLimiter)
 	go func() {
 		if err := httpServer.Start(); err != nil {
 			log.Fatal().Err(err).Msg("HTTP server failed")
 		}
 	}()
 
-	log.Info().Int("port", cfg.Server.Port).Msg("HTTP ingestion server started")
+	protocol := "HTTP"
+	if tlsConfig != nil {
+		protocol = "HTTPS"
+	}
+	log.Info().Str("protocol", protocol).Int("port", cfg.Server.Port).Msg("Ingestion server started")
 
 	// Инициализация gRPC сервера
 	grpcSrv := grpcserver.NewGRPCServer(cfg.GRPC.Port, proc)
@@ -109,6 +144,21 @@ func main() {
 	}()
 
 	log.Info().Int("port", cfg.GRPC.Port).Msg("gRPC server started")
+
+	// Инициализация Auth API если JWT включен
+	if jwtManager != nil {
+		authAPI := security.NewAuthAPI(jwtManager)
+		authMux := http.NewServeMux()
+		authAPI.RegisterRoutes(authMux)
+
+		go func() {
+			authPort := cfg.Server.Port + 3 // Auth API на порту +3
+			log.Info().Int("port", authPort).Msg("Auth API server started")
+			if err := http.ListenAndServe(fmt.Sprintf(":%d", authPort), authMux); err != nil {
+				log.Error().Err(err).Msg("Auth API server failed")
+			}
+		}()
+	}
 
 	// Инициализация WebSocket сервера
 	wsServer := websocket.NewWebSocketServer(redisCache)

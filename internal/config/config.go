@@ -14,6 +14,8 @@ type Config struct {
 	Redis      RedisConfig
 	RateLimit  RateLimitConfig
 	Metrics    MetricsConfig
+	TLS        TLSConfig
+	JWT        JWTConfig
 }
 
 type ServerConfig struct {
@@ -24,6 +26,20 @@ type ServerConfig struct {
 
 type GRPCConfig struct {
 	Port int
+}
+
+type TLSConfig struct {
+	Enabled  bool
+	CertFile string
+	KeyFile  string
+	CAFile   string
+}
+
+type JWTConfig struct {
+	Enabled    bool
+	Secret     string
+	Expiration int // hours
+	Issuer     string
 }
 
 type ProcessorConfig struct {
@@ -92,6 +108,18 @@ func Load() (*Config, error) {
 		},
 		Metrics: MetricsConfig{
 			Port: getEnvInt("METRICS_PORT", 9090),
+		},
+		TLS: TLSConfig{
+			Enabled:  getEnvBool("TLS_ENABLED", false),
+			CertFile: getEnv("TLS_CERT_FILE", "./certs/server-cert.pem"),
+			KeyFile:  getEnv("TLS_KEY_FILE", "./certs/server-key.pem"),
+			CAFile:   getEnv("TLS_CA_FILE", ""),
+		},
+		JWT: JWTConfig{
+			Enabled:    getEnvBool("JWT_ENABLED", false),
+			Secret:     getEnv("JWT_SECRET", ""),
+			Expiration: getEnvInt("JWT_EXPIRATION_HOURS", 24),
+			Issuer:     getEnv("JWT_ISSUER", "streamflow"),
 		},
 	}
 
