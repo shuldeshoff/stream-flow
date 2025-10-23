@@ -15,6 +15,7 @@ import (
 	"github.com/sul/streamflow/internal/config"
 	"github.com/sul/streamflow/internal/grpcserver"
 	"github.com/sul/streamflow/internal/ingestion"
+	"github.com/sul/streamflow/internal/banking"
 	"github.com/sul/streamflow/internal/metrics"
 	"github.com/sul/streamflow/internal/processor"
 	"github.com/sul/streamflow/internal/query"
@@ -134,6 +135,16 @@ func main() {
 
 		log.Info().Int("port", cfg.Server.Port+1).Msg("Query API server started")
 	}
+
+	// Инициализация Banking API (порт 8083)
+	bankingAPI := banking.NewBankingAPI(8083, proc, redisCache)
+	go func() {
+		if err := bankingAPI.Start(); err != nil {
+			log.Error().Err(err).Msg("Banking API server failed")
+		}
+	}()
+
+	log.Info().Int("port", 8083).Msg("Banking API server started")
 
 	// Graceful shutdown
 	sigChan := make(chan os.Signal, 1)
