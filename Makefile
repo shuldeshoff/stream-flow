@@ -4,6 +4,7 @@
 build:
 	go build -o bin/streamflow cmd/streamflow/main.go
 	go build -o bin/streamflow-cli cmd/cli/main.go
+	go build -o bin/banking-simulator cmd/banking-simulator/main.go
 
 # Запуск
 run: build
