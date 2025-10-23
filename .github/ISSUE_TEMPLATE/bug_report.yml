@@ -1,0 +1,122 @@
+name: Bug Report
+description: Сообщить об ошибке в StreamFlow
+title: "[BUG]: "
+labels: ["bug", "triage"]
+assignees:
+  - shuldeshoff
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за то, что нашли время сообщить об ошибке! Это помогает сделать StreamFlow лучше.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание проблемы
+      description: Краткое и ясное описание того, что не работает
+      placeholder: Расскажите о проблеме...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги для воспроизведения
+      description: Как воспроизвести проблему?
+      placeholder: |
+        1. Запустить '...'
+        2. Выполнить '...'
+        3. Увидеть ошибку
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+      description: Что должно было произойти?
+      placeholder: Должно было...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактическое поведение
+      description: Что произошло на самом деле?
+      placeholder: Вместо этого произошло...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Версия StreamFlow
+      description: Какую версию вы используете?
+      placeholder: "0.6.0"
+    validations:
+      required: true
+
+  - type: input
+    id: go-version
+    attributes:
+      label: Версия Go
+      description: Вывод команды `go version`
+      placeholder: "go version go1.21.0 linux/amd64"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Операционная система
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Docker
+        - Kubernetes
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи
+      description: Пожалуйста, приложите релевантные логи
+      render: shell
+      placeholder: |
+        {"level":"error","time":"...","message":"..."}
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Конфигурация
+      description: Ваш .env или конфигурация (без секретов!)
+      render: bash
+      placeholder: |
+        SERVER_PORT=8080
+        WORKER_COUNT=10
+        ...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Дополнительная информация
+      description: Что-то еще, что может помочь?
+      placeholder: Скриншоты, метрики, и т.д.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Проверка
+      options:
+        - label: Я искал в Issues и не нашел похожих проблем
+          required: true
+        - label: Я использую последнюю версию StreamFlow
+          required: false
+        - label: Я готов помочь с исправлением (создать PR)
+          required: false
+

@@ -1,0 +1,103 @@
+name: Feature Request
+description: Предложить новую функцию для StreamFlow
+title: "[FEATURE]: "
+labels: ["enhancement", "triage"]
+assignees:
+  - shuldeshoff
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за предложение новой функции! Ваши идеи помогают развивать StreamFlow.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему решает эта функция?
+      description: Опишите проблему, с которой вы столкнулись
+      placeholder: Мне неудобно, когда...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое решение
+      description: Как бы вы хотели решить эту проблему?
+      placeholder: Было бы хорошо, если бы...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативные решения
+      description: Рассматривали ли вы другие варианты?
+      placeholder: Я также думал о...
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Примеры использования
+      description: Как вы будете использовать эту функцию?
+      placeholder: |
+        1. Сценарий использования 1
+        2. Сценарий использования 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Примеры кода
+      description: Покажите, как это могло бы выглядеть в коде
+      render: go
+      placeholder: |
+        // Пример API
+        processor.EnableFeature(...)
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Какой компонент затрагивается?
+      multiple: true
+      options:
+        - Core (processor, ingestion)
+        - Storage (ClickHouse)
+        - Cache (Redis)
+        - API (HTTP, gRPC)
+        - Banking Edition
+        - Fraud Detection
+        - Security (TLS, JWT)
+        - Monitoring
+        - Documentation
+        - Other
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Приоритет (по вашему мнению)
+      options:
+        - Low (было бы неплохо)
+        - Medium (нужно)
+        - High (критично для работы)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: willingness
+    attributes:
+      label: Готовность помочь
+      options:
+        - label: Я готов помочь с реализацией этой функции
+        - label: Я готов написать документацию
+        - label: Я готов протестировать эту функцию
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Дополнительная информация
+      description: Что-то еще, что может быть полезно?
+      placeholder: Ссылки, скриншоты, диаграммы...
+

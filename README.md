@@ -1,5 +1,14 @@
 # StreamFlow
 
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sul/streamflow)](https://goreportcard.com/report/github.com/sul/streamflow)
+[![Build Status](https://github.com/sul/streamflow/workflows/CI/badge.svg)](https://github.com/sul/streamflow/actions)
+[![Coverage](https://img.shields.io/badge/coverage-35%25-yellow.svg)](https://github.com/sul/streamflow)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg?logo=docker)](docker-compose.yml)
+[![Powered by ClickHouse](https://img.shields.io/badge/Powered%20by-ClickHouse-yellow.svg?logo=clickhouse)](https://clickhouse.com/)
+
 🌊 Распределенная платформа обработки событий в реальном времени на Go
 
 ## Описание
@@ -270,6 +279,23 @@ streamflow/
 ### 🚗 IoT и телематика
 Обработка данных с датчиков автомобилей, умных домов, промышленного оборудования. Мониторинг состояния и предиктивное обслуживание.
 
+## 🤝 Contributing
+
+Мы приветствуем ваш вклад в развитие проекта! Пожалуйста, ознакомьтесь с [CONTRIBUTING.md](CONTRIBUTING.md) для получения информации о:
+
+- Процессе разработки
+- Стандартах кодирования
+- Создании Pull Requests
+- Тестировании
+
+**Quick Start для контрибьюторов:**
+```bash
+git clone https://github.com/sul/streamflow
+cd streamflow
+make docker-up
+make test
+```
+
 ## Лицензия
 
 MIT License
@@ -279,5 +305,4 @@ MIT License
 **Шульдешов Юрий Леонидович**  
 Telegram: [@shuldeshoff](https://t.me/shuldeshoff)
 
-Создано для изучения высоконагруженных систем на Go
 
