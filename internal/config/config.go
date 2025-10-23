@@ -12,6 +12,7 @@ type Config struct {
 	Processor  ProcessorConfig
 	ClickHouse ClickHouseConfig
 	Redis      RedisConfig
+	RateLimit  RateLimitConfig
 	Metrics    MetricsConfig
 }
 
@@ -46,6 +47,12 @@ type RedisConfig struct {
 	DB       int
 }
 
+type RateLimitConfig struct {
+	Enabled bool
+	RPS     int // requests per second per client
+	Burst   int // burst size
+}
+
 type MetricsConfig struct {
 	Port int
 }
@@ -78,6 +85,11 @@ func Load() (*Config, error) {
 			Password: getEnv("REDIS_PASSWORD", ""),
 			DB:       getEnvInt("REDIS_DB", 0),
 		},
+		RateLimit: RateLimitConfig{
+			Enabled: getEnvBool("RATE_LIMIT_ENABLED", true),
+			RPS:     getEnvInt("RATE_LIMIT_RPS", 1000),
+			Burst:   getEnvInt("RATE_LIMIT_BURST", 2000),
+		},
 		Metrics: MetricsConfig{
 			Port: getEnvInt("METRICS_PORT", 9090),
 		},
@@ -101,6 +113,19 @@ func getEnvInt(key string, defaultValue int) int {
 	value, err := strconv.Atoi(strValue)
 	if err != nil {
 		fmt.Printf("Warning: invalid value for %s, using default %d\n", key, defaultValue)
+		return defaultValue
+	}
+	return value
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	strValue := os.Getenv(key)
+	if strValue == "" {
+		return defaultValue
+	}
+	value, err := strconv.ParseBool(strValue)
+	if err != nil {
+		fmt.Printf("Warning: invalid value for %s, using default %v\n", key, defaultValue)
 		return defaultValue
 	}
 	return value

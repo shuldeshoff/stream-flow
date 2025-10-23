@@ -12,18 +12,21 @@ import (
 	"github.com/sul/streamflow/internal/metrics"
 	"github.com/sul/streamflow/internal/models"
 	"github.com/sul/streamflow/internal/processor"
+	"github.com/sul/streamflow/internal/ratelimit"
 )
 
 type HTTPServer struct {
-	config    config.ServerConfig
-	processor *processor.EventProcessor
-	server    *http.Server
+	config      config.ServerConfig
+	processor   *processor.EventProcessor
+	rateLimiter *ratelimit.RateLimiter
+	server      *http.Server
 }
 
-func NewHTTPServer(cfg config.ServerConfig, proc *processor.EventProcessor) *HTTPServer {
+func NewHTTPServer(cfg config.ServerConfig, proc *processor.EventProcessor, rl *ratelimit.RateLimiter) *HTTPServer {
 	return &HTTPServer{
-		config:    cfg,
-		processor: proc,
+		config:      cfg,
+		processor:   proc,
+		rateLimiter: rl,
 	}
 }
 
@@ -56,6 +59,16 @@ func (s *HTTPServer) Shutdown(ctx context.Context) error {
 func (s *HTTPServer) handleEvents(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Rate limiting
+	clientID := getClientID(r)
+	if s.rateLimiter != nil && !s.rateLimiter.Allow(clientID) {
+		metrics.IncEventsReceived("rate_limited")
+		w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", s.getRateLimitInfo(clientID)))
+		w.Header().Set("Retry-After", "1")
+		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}
 
@@ -96,6 +109,10 @@ func (s *HTTPServer) handleEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	metrics.IncEventsReceived("accepted")
+	
+	// Добавляем rate limit headers
+	s.setRateLimitHeaders(w, clientID)
+	
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]string{
 		"status": "accepted",
@@ -109,17 +126,46 @@ func (s *HTTPServer) handleBatchEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	startTime := time.Now()
-	defer func() {
-		metrics.RecordIngestionLatency(time.Since(startTime).Seconds())
-	}()
+	// Rate limiting для батчей
+	clientID := getClientID(r)
+	if s.rateLimiter != nil {
+		// Для батчей проверяем заранее размер
+		var events []models.Event
+		if err := json.NewDecoder(r.Body).Decode(&events); err != nil {
+			metrics.IncEventsReceived("error")
+			http.Error(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
+			return
+		}
 
+		if !s.rateLimiter.AllowN(clientID, len(events)) {
+			metrics.IncEventsReceived("rate_limited")
+			w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", s.getRateLimitInfo(clientID)))
+			w.Header().Set("Retry-After", "1")
+			http.Error(w, "Rate limit exceeded for batch", http.StatusTooManyRequests)
+			return
+		}
+
+		// Обрабатываем уже декодированный батч
+		s.processBatchEvents(w, events, clientID)
+		return
+	}
+
+	// Без rate limiting
 	var events []models.Event
 	if err := json.NewDecoder(r.Body).Decode(&events); err != nil {
 		metrics.IncEventsReceived("error")
 		http.Error(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
 		return
 	}
+
+	s.processBatchEvents(w, events, clientID)
+}
+
+func (s *HTTPServer) processBatchEvents(w http.ResponseWriter, events []models.Event, clientID string) {
+	startTime := time.Now()
+	defer func() {
+		metrics.RecordIngestionLatency(time.Since(startTime).Seconds())
+	}()
 
 	if len(events) == 0 {
 		http.Error(w, "Empty batch", http.StatusBadRequest)
@@ -142,6 +188,8 @@ func (s *HTTPServer) handleBatchEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	metrics.IncBatchEventsReceived(accepted, failed)
+	
+	s.setRateLimitHeaders(w, clientID)
 
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -150,6 +198,42 @@ func (s *HTTPServer) handleBatchEvents(w http.ResponseWriter, r *http.Request) {
 		"failed":   failed,
 		"total":    len(events),
 	})
+}
+
+// getClientID извлекает идентификатор клиента из запроса
+func getClientID(r *http.Request) string {
+	// Проверяем заголовок X-Client-ID
+	if clientID := r.Header.Get("X-Client-ID"); clientID != "" {
+		return clientID
+	}
+
+	// Проверяем source из query params
+	if source := r.URL.Query().Get("source"); source != "" {
+		return source
+	}
+
+	// Fallback на IP адрес
+	return r.RemoteAddr
+}
+
+// setRateLimitHeaders устанавливает заголовки rate limit
+func (s *HTTPServer) setRateLimitHeaders(w http.ResponseWriter, clientID string) {
+	if s.rateLimiter == nil {
+		return
+	}
+
+	limit, remaining := s.rateLimiter.GetLimit(clientID)
+	w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", limit))
+	w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
+	w.Header().Set("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(1*time.Second).Unix()))
+}
+
+func (s *HTTPServer) getRateLimitInfo(clientID string) int {
+	if s.rateLimiter == nil {
+		return 0
+	}
+	limit, _ := s.rateLimiter.GetLimit(clientID)
+	return limit
 }
 
 func (s *HTTPServer) handleHealth(w http.ResponseWriter, r *http.Request) {

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,7 +18,9 @@ import (
 	"github.com/sul/streamflow/internal/metrics"
 	"github.com/sul/streamflow/internal/processor"
 	"github.com/sul/streamflow/internal/query"
+	"github.com/sul/streamflow/internal/ratelimit"
 	"github.com/sul/streamflow/internal/storage"
+	"github.com/sul/streamflow/internal/websocket"
 )
 
 func main() {
@@ -75,8 +78,19 @@ func main() {
 
 	log.Info().Int("workers", cfg.Processor.WorkerCount).Msg("Event processor started")
 
+	// Инициализация rate limiter
+	var rateLimiter *ratelimit.RateLimiter
+	if cfg.RateLimit.Enabled {
+		rateLimiter = ratelimit.NewRateLimiter(redisCache, cfg.RateLimit.RPS, cfg.RateLimit.Burst)
+		defer rateLimiter.Stop()
+		log.Info().
+			Int("rps", cfg.RateLimit.RPS).
+			Int("burst", cfg.RateLimit.Burst).
+			Msg("Rate limiter enabled")
+	}
+
 	// Инициализация HTTP сервера для приема событий
-	httpServer := ingestion.NewHTTPServer(cfg.Server, proc)
+	httpServer := ingestion.NewHTTPServer(cfg.Server, proc, rateLimiter)
 	go func() {
 		if err := httpServer.Start(); err != nil {
 			log.Fatal().Err(err).Msg("HTTP server failed")
@@ -94,6 +108,20 @@ func main() {
 	}()
 
 	log.Info().Int("port", cfg.GRPC.Port).Msg("gRPC server started")
+
+	// Инициализация WebSocket сервера
+	wsServer := websocket.NewWebSocketServer(redisCache)
+	defer wsServer.Stop()
+	
+	// Добавляем WebSocket endpoint к HTTP серверу
+	http.HandleFunc("/ws", wsServer.HandleWebSocket)
+	go func() {
+		addr := fmt.Sprintf(":%d", cfg.Server.Port+2) // WebSocket на порту +2
+		log.Info().Str("address", addr).Msg("WebSocket server started")
+		if err := http.ListenAndServe(addr, nil); err != nil {
+			log.Error().Err(err).Msg("WebSocket server failed")
+		}
+	}()
 
 	// Инициализация Query API сервера
 	if redisCache != nil {
