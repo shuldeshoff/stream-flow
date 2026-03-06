@@ -12,18 +12,18 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/banking"
-	"github.com/sul/streamflow/internal/cache"
-	"github.com/sul/streamflow/internal/config"
-	"github.com/sul/streamflow/internal/grpcserver"
-	"github.com/sul/streamflow/internal/ingestion"
-	"github.com/sul/streamflow/internal/metrics"
-	"github.com/sul/streamflow/internal/processor"
-	"github.com/sul/streamflow/internal/query"
-	"github.com/sul/streamflow/internal/ratelimit"
-	"github.com/sul/streamflow/internal/security"
-	"github.com/sul/streamflow/internal/storage"
-	"github.com/sul/streamflow/internal/websocket"
+	"github.com/shuldeshoff/stream-flow/internal/banking"
+	"github.com/shuldeshoff/stream-flow/internal/cache"
+	"github.com/shuldeshoff/stream-flow/internal/config"
+	"github.com/shuldeshoff/stream-flow/internal/grpcserver"
+	"github.com/shuldeshoff/stream-flow/internal/ingestion"
+	"github.com/shuldeshoff/stream-flow/internal/metrics"
+	"github.com/shuldeshoff/stream-flow/internal/processor"
+	"github.com/shuldeshoff/stream-flow/internal/query"
+	"github.com/shuldeshoff/stream-flow/internal/ratelimit"
+	"github.com/shuldeshoff/stream-flow/internal/security"
+	"github.com/shuldeshoff/stream-flow/internal/storage"
+	"github.com/shuldeshoff/stream-flow/internal/websocket"
 )
 
 func main() {
@@ -186,15 +186,16 @@ func main() {
 		log.Info().Int("port", cfg.Server.Port+1).Msg("Query API server started")
 	}
 
-	// Инициализация Banking API (порт 8083)
-	bankingAPI := banking.NewBankingAPI(8083, proc, redisCache)
+	// Инициализация Banking API (порт +4 от основного, по умолчанию 8084)
+	bankingPort := cfg.Server.Port + 4
+	bankingAPI := banking.NewBankingAPI(bankingPort, proc, redisCache)
 	go func() {
 		if err := bankingAPI.Start(); err != nil {
 			log.Error().Err(err).Msg("Banking API server failed")
 		}
 	}()
 
-	log.Info().Int("port", 8083).Msg("Banking API server started")
+	log.Info().Int("port", bankingPort).Msg("Banking API server started")
 
 	// Graceful shutdown
 	sigChan := make(chan os.Signal, 1)

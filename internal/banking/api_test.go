@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sul/streamflow/internal/fraud"
+	"github.com/shuldeshoff/stream-flow/internal/fraud"
 )
 
 // Mock для тестирования

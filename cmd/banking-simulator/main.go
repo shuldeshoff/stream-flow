@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sul/streamflow/internal/fraud"
+	"github.com/shuldeshoff/stream-flow/internal/fraud"
 )
 
 func main() {

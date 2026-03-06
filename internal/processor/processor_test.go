@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sul/streamflow/internal/config"
-	"github.com/sul/streamflow/internal/models"
+	"github.com/shuldeshoff/stream-flow/internal/config"
+	"github.com/shuldeshoff/stream-flow/internal/models"
 )
 
 type MockStorage struct {

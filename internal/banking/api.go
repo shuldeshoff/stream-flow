@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/cache"
-	"github.com/sul/streamflow/internal/fraud"
-	"github.com/sul/streamflow/internal/models"
-	"github.com/sul/streamflow/internal/processor"
+	"github.com/shuldeshoff/stream-flow/internal/cache"
+	"github.com/shuldeshoff/stream-flow/internal/fraud"
+	"github.com/shuldeshoff/stream-flow/internal/models"
+	"github.com/shuldeshoff/stream-flow/internal/processor"
 )
 
 // BankingAPI обрабатывает банковские транзакции

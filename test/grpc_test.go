@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	pb "github.com/sul/streamflow/pkg/grpc/proto"
+	pb "github.com/shuldeshoff/stream-flow/pkg/grpc/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"

@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/cache"
-	"github.com/sul/streamflow/internal/config"
-	"github.com/sul/streamflow/internal/dlq"
-	"github.com/sul/streamflow/internal/enrichment"
-	"github.com/sul/streamflow/internal/metrics"
-	"github.com/sul/streamflow/internal/models"
-	"github.com/sul/streamflow/internal/storage"
+	"github.com/shuldeshoff/stream-flow/internal/cache"
+	"github.com/shuldeshoff/stream-flow/internal/config"
+	"github.com/shuldeshoff/stream-flow/internal/dlq"
+	"github.com/shuldeshoff/stream-flow/internal/enrichment"
+	"github.com/shuldeshoff/stream-flow/internal/metrics"
+	"github.com/shuldeshoff/stream-flow/internal/models"
+	"github.com/shuldeshoff/stream-flow/internal/storage"
 )
 
 type EventProcessor struct {

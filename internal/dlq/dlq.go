@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/models"
-	"github.com/sul/streamflow/internal/storage"
+	"github.com/shuldeshoff/stream-flow/internal/models"
+	"github.com/shuldeshoff/stream-flow/internal/storage"
 )
 
 // DeadLetterQueue управляет необработанными событиями

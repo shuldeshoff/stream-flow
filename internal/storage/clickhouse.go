@@ -8,8 +8,8 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/config"
-	"github.com/sul/streamflow/internal/models"
+	"github.com/shuldeshoff/stream-flow/internal/config"
+	"github.com/shuldeshoff/stream-flow/internal/models"
 )
 
 type Storage interface {

@@ -66,6 +66,14 @@ func getBaseURL() string {
 	return url
 }
 
+func getQueryBaseURL() string {
+	url := os.Getenv("STREAMFLOW_QUERY_URL")
+	if url == "" {
+		url = "http://localhost:8081"
+	}
+	return url
+}
+
 func checkHealth() {
 	url := getBaseURL() + "/health"
 	
@@ -93,8 +101,7 @@ func getStats() {
 	window := statsCmd.Int("window", 60, "Временное окно в секундах")
 	statsCmd.Parse(os.Args[2:])
 
-	queryURL := fmt.Sprintf("http://localhost:%d", 8081) // Query API port
-	url := fmt.Sprintf("%s/api/v1/query/stats?window=%d", queryURL, *window)
+	url := fmt.Sprintf("%s/api/v1/query/stats?window=%d", getQueryBaseURL(), *window)
 	
 	resp, err := http.Get(url)
 	if err != nil {

@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/config"
-	"github.com/sul/streamflow/internal/metrics"
-	"github.com/sul/streamflow/internal/models"
-	"github.com/sul/streamflow/internal/processor"
-	"github.com/sul/streamflow/internal/ratelimit"
-	"github.com/sul/streamflow/internal/security"
+	"github.com/shuldeshoff/stream-flow/internal/config"
+	"github.com/shuldeshoff/stream-flow/internal/metrics"
+	"github.com/shuldeshoff/stream-flow/internal/models"
+	"github.com/shuldeshoff/stream-flow/internal/processor"
+	"github.com/shuldeshoff/stream-flow/internal/ratelimit"
+	"github.com/shuldeshoff/stream-flow/internal/security"
 )
 
 type HTTPServer struct {

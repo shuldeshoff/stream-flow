@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/cache"
+	"github.com/shuldeshoff/stream-flow/internal/cache"
 )
 
 // FraudDetector детектирует мошенничество в банковских транзакциях

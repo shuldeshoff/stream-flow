@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sul/streamflow/internal/cache"
+	"github.com/shuldeshoff/stream-flow/internal/cache"
 )
 
 // Mock Redis Cache для тестирования

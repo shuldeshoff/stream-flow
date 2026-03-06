@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/metrics"
-	"github.com/sul/streamflow/internal/models"
-	"github.com/sul/streamflow/internal/processor"
-	pb "github.com/sul/streamflow/pkg/grpc/proto"
+	"github.com/shuldeshoff/stream-flow/internal/metrics"
+	"github.com/shuldeshoff/stream-flow/internal/models"
+	"github.com/shuldeshoff/stream-flow/internal/processor"
+	pb "github.com/shuldeshoff/stream-flow/pkg/grpc/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

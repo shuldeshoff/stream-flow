@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/cache"
-	"github.com/sul/streamflow/internal/models"
+	"github.com/shuldeshoff/stream-flow/internal/cache"
+	"github.com/shuldeshoff/stream-flow/internal/models"
 )
 
 // Enricher интерфейс для обогащения событий

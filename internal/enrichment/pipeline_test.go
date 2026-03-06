@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sul/streamflow/internal/models"
+	"github.com/shuldeshoff/stream-flow/internal/models"
 )
 
 func TestNewEnrichmentPipeline(t *testing.T) {

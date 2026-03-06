@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/cache"
-	"github.com/sul/streamflow/internal/config"
-	"github.com/sul/streamflow/internal/storage"
+	"github.com/shuldeshoff/stream-flow/internal/cache"
+	"github.com/shuldeshoff/stream-flow/internal/config"
+	"github.com/shuldeshoff/stream-flow/internal/storage"
 )
 
 type QueryServer struct {

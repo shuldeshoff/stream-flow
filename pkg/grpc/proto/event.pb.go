@@ -313,7 +313,7 @@ const file_api_proto_event_proto_rawDesc = "" +
 	"\tSendEvent\x12\x11.streamflow.Event\x1a\x19.streamflow.EventResponse\x12>\n" +
 	"\tSendBatch\x12\x16.streamflow.EventBatch\x1a\x19.streamflow.BatchResponse\x12>\n" +
 	"\n" +
-	"SendStream\x12\x11.streamflow.Event\x1a\x19.streamflow.EventResponse(\x010\x01B*Z(github.com/sul/streamflow/pkg/grpc/protob\x06proto3"
+	"SendStream\x12\x11.streamflow.Event\x1a\x19.streamflow.EventResponse(\x010\x01B*Z(github.com/shuldeshoff/stream-flow/pkg/grpc/protob\x06proto3"
 
 var (
 	file_api_proto_event_proto_rawDescOnce sync.Once

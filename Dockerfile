@@ -1,7 +1,7 @@
 # Multi-stage build для минимального размера образа
 
 # Stage 1: Build
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # Устанавливаем необходимые инструменты
 RUN apk add --no-cache git ca-certificates tzdata
@@ -46,7 +46,7 @@ RUN mkdir -p /app/logs /app/certs && \
 USER streamflow
 
 # Открываем порты
-EXPOSE 8080 9000 9090 8083
+EXPOSE 8080 8081 8082 8083 8084 9090
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

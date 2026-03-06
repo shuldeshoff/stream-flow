@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
-	"github.com/sul/streamflow/internal/cache"
+	"github.com/shuldeshoff/stream-flow/internal/cache"
 )
 
 var upgrader = websocket.Upgrader{
