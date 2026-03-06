@@ -16,6 +16,41 @@ type Config struct {
 	Metrics    MetricsConfig
 	TLS        TLSConfig
 	JWT        JWTConfig
+	Kafka      KafkaConfig
+	Fraud      FraudConfig
+	Banking    BankingConfig
+}
+
+// KafkaConfig holds all Kafka connection and topic settings.
+type KafkaConfig struct {
+	// Enabled controls whether events are published to Kafka.
+	// When false, the system falls back to the direct in-process pipeline.
+	Enabled  bool
+	Brokers  []string // comma-separated in env: KAFKA_BROKERS
+	ClientID string
+}
+
+// FraudConfig tunes the multi-layer fraud engine.
+type FraudConfig struct {
+	// Enabled toggles the fraud engine.
+	Enabled bool
+	// BlockTTLHours is how long a card stays blocked (default 24h).
+	BlockTTLHours int
+	// ScoreAlertThreshold overrides the default 200 alert boundary.
+	ScoreAlertThreshold int
+	// ScoreReviewThreshold overrides the default 400 review boundary.
+	ScoreReviewThreshold int
+	// ScoreChallengeThreshold overrides the default 600 challenge boundary.
+	ScoreChallengeThreshold int
+	// ScoreDeclineThreshold overrides the default 800 decline boundary.
+	ScoreDeclineThreshold int
+}
+
+// BankingConfig holds Banking API settings.
+type BankingConfig struct {
+	// Port is the HTTP port for the Banking API.
+	// Defaults to SERVER_PORT+4 (8084 with default SERVER_PORT=8080).
+	Port int
 }
 
 type ServerConfig struct {
@@ -121,6 +156,22 @@ func Load() (*Config, error) {
 			Expiration: getEnvInt("JWT_EXPIRATION_HOURS", 24),
 			Issuer:     getEnv("JWT_ISSUER", "streamflow"),
 		},
+		Kafka: KafkaConfig{
+			Enabled:  getEnvBool("KAFKA_ENABLED", false),
+			Brokers:  getEnvStringSlice("KAFKA_BROKERS", []string{"localhost:9092"}),
+			ClientID: getEnv("KAFKA_CLIENT_ID", "streamflow"),
+		},
+		Fraud: FraudConfig{
+			Enabled:                 getEnvBool("FRAUD_ENABLED", true),
+			BlockTTLHours:           getEnvInt("FRAUD_BLOCK_TTL_HOURS", 24),
+			ScoreAlertThreshold:     getEnvInt("FRAUD_SCORE_ALERT", 200),
+			ScoreReviewThreshold:    getEnvInt("FRAUD_SCORE_REVIEW", 400),
+			ScoreChallengeThreshold: getEnvInt("FRAUD_SCORE_CHALLENGE", 600),
+			ScoreDeclineThreshold:   getEnvInt("FRAUD_SCORE_DECLINE", 800),
+		},
+		Banking: BankingConfig{
+			Port: getEnvInt("BANKING_PORT", 0), // 0 = use SERVER_PORT+4
+		},
 	}
 
 	return cfg, nil
@@ -157,5 +208,36 @@ func getEnvBool(key string, defaultValue bool) bool {
 		return defaultValue
 	}
 	return value
+}
+
+// getEnvStringSlice parses a comma-separated environment variable into a string slice.
+func getEnvStringSlice(key string, defaultValue []string) []string {
+	strValue := os.Getenv(key)
+	if strValue == "" {
+		return defaultValue
+	}
+	var result []string
+	for _, s := range splitComma(strValue) {
+		if s != "" {
+			result = append(result, s)
+		}
+	}
+	if len(result) == 0 {
+		return defaultValue
+	}
+	return result
+}
+
+func splitComma(s string) []string {
+	var parts []string
+	start := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == ',' {
+			parts = append(parts, s[start:i])
+			start = i + 1
+		}
+	}
+	parts = append(parts, s[start:])
+	return parts
 }
 

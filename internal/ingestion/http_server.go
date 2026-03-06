@@ -10,6 +10,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/shuldeshoff/stream-flow/internal/config"
+	"github.com/shuldeshoff/stream-flow/internal/kafka"
 	"github.com/shuldeshoff/stream-flow/internal/metrics"
 	"github.com/shuldeshoff/stream-flow/internal/models"
 	"github.com/shuldeshoff/stream-flow/internal/processor"
@@ -24,6 +25,9 @@ type HTTPServer struct {
 	processor   *processor.EventProcessor
 	rateLimiter *ratelimit.RateLimiter
 	server      *http.Server
+	// kafkaProducer is optional; when non-nil events are published to Kafka
+	// before the in-process fallback path.
+	kafkaProducer *kafka.Producer
 }
 
 func NewHTTPServer(cfg config.ServerConfig, tlsCfg *tls.Config, jwtMgr *security.JWTManager, proc *processor.EventProcessor, rl *ratelimit.RateLimiter) *HTTPServer {
@@ -34,6 +38,14 @@ func NewHTTPServer(cfg config.ServerConfig, tlsCfg *tls.Config, jwtMgr *security
 		processor:   proc,
 		rateLimiter: rl,
 	}
+}
+
+// SetKafkaProducer attaches a Kafka producer so that accepted events are
+// published to kafka.TopicEventsRaw in addition to the in-process pipeline.
+// When Kafka is enabled, the in-process Submit call is skipped to avoid
+// double-processing; it serves as fallback only when Kafka is unavailable.
+func (s *HTTPServer) SetKafkaProducer(p *kafka.Producer) {
+	s.kafkaProducer = p
 }
 
 func (s *HTTPServer) Start() error {
@@ -122,7 +134,29 @@ func (s *HTTPServer) handleEvents(w http.ResponseWriter, r *http.Request) {
 		event.Timestamp = time.Now()
 	}
 
-	// Отправляем событие на обработку
+	// Publish to Kafka when available; fall back to the in-process pipeline.
+	if s.kafkaProducer != nil {
+		partKey := kafka.PartitionKey(event.ID, event.Source)
+		pubCtx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+		err := s.kafkaProducer.Publish(pubCtx, kafka.TopicEventsRaw, partKey, event)
+		cancel()
+		if err != nil {
+			log.Warn().Err(err).Str("event_id", event.ID).
+				Msg("Kafka publish failed, falling back to in-process pipeline")
+			// fallback ↓
+		} else {
+			metrics.IncEventsReceived("accepted")
+			s.setRateLimitHeaders(w, clientID)
+			w.WriteHeader(http.StatusAccepted)
+			json.NewEncoder(w).Encode(map[string]string{
+				"status": "accepted",
+				"id":     event.ID,
+			})
+			return
+		}
+	}
+
+	// In-process fallback (also the default when Kafka is disabled).
 	if err := s.processor.Submit(event); err != nil {
 		metrics.IncEventsReceived("dropped")
 		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)

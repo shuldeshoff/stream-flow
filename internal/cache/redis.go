@@ -44,6 +44,12 @@ func (r *RedisCache) Close() error {
 	return r.client.Close()
 }
 
+// Client returns the underlying redis.Client for packages that need direct access
+// (e.g. the feature store that uses the full Redis API).
+func (r *RedisCache) Client() *redis.Client {
+	return r.client
+}
+
 // Get получает значение из кэша
 func (r *RedisCache) Get(ctx context.Context, key string) (string, error) {
 	val, err := r.client.Get(ctx, key).Result()
