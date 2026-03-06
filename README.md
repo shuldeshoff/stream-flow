@@ -1,6 +1,6 @@
 # StreamFlow
 
-[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shuldeshoff/stream-flow)](https://goreportcard.com/report/github.com/shuldeshoff/stream-flow)
@@ -60,7 +60,7 @@ StreamFlow - это высоконагруженная система для с�
 
 ### Требования
 
-- Go 1.23+
+- Go 1.24+
 - Docker & Docker Compose
 - ClickHouse (или через Docker)
 
