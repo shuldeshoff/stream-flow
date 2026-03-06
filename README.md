@@ -153,7 +153,80 @@ Hot-reload без рестарта: `engine.ReloadRules(newRules)`.
 | 800–999 | decline |
 | 1000 | block |
 
-## Быстрый старт
+## Streaming Pipeline
+
+Каждая стадия — отдельная consumer group. Это обеспечивает независимое масштабирование и изоляцию ошибок.
+
+```
+Stage 1 · Ingestion
+  HTTP / gRPC → validate schema → publish to events.raw / transactions.raw
+  (Kafka-first; in-process fallback при недоступности брокера)
+
+Stage 2 · Validation          consumer group: events-processor
+  events.raw → field checks, deduplication → forward to processor
+
+Stage 3 · Enrichment          (in-process, inside worker pool)
+  timestamp, geo-ip, user-agent, session, counters
+
+Stage 4 · Feature update      (inside fraud-engine consumer)
+  transactions.raw → RecordTransaction() → Redis ZSET sliding windows
+  offline baselines from ClickHouse
+
+Stage 5 · Fraud scoring       consumer group: fraud-engine
+  feature snapshot → rule engine → risk scorer → Decision
+
+Stage 6 · Decision dispatch
+  Decision → transactions.decisions (approved/declined)
+           → transactions.dlq       (unparse-able payload)
+
+Stage 7 · Storage write       (worker pool batch writer)
+  events → ClickHouse batch insert
+  stats  → Redis counters
+```
+
+Каждый consumer читает только свой топик и не знает о других группах — добавление нового обработчика не требует изменения кода существующих.
+
+## Обработка ошибок и DLQ
+
+```
+Transient error (Redis timeout, DB unavailable)
+  └─→ retry topic (transactions.retry.1m → .retry.5m)
+      exponential back-off, max 3 attempts
+
+Permanent error (bad JSON, unknown schema, logic failure)
+  └─→ transactions.dlq
+      поле reason_code + оригинальный payload для ручного разбора
+```
+
+| Топик | Назначение | TTL |
+|---|---|---|
+| `transactions.retry.1m` | Первичный ретрай через 1 мин | 1 h |
+| `transactions.retry.5m` | Вторичный ретрай через 5 мин | 6 h |
+| `transactions.dlq` | Необработанные / постоянные ошибки | 7 d |
+
+Каждый потребитель реализует at-least-once: offset коммитится только после успешного return из handler, поэтому при перезапуске сообщение будет обработано повторно.
+
+## Статус проекта
+
+Проект находится в **активной разработке**. Архитектурная основа стабильна; API Banking и Kafka-pipeline пригодны для экспериментирования и R&D.
+
+| Область | Статус |
+|---|---|
+| HTTP/gRPC ingestion | ✅ Production-ready |
+| Kafka backbone (KRaft) | ✅ Реализован, включается через `KAFKA_ENABLED=true` |
+| Online feature store (Redis) | ✅ Реализован |
+| Offline feature store (ClickHouse) | ✅ Базовая реализация |
+| Rule engine (configurable) | ✅ Реализован, 8 встроенных правил |
+| Risk scoring | ✅ Реализован |
+| 4-layer fraud engine | ✅ Реализован |
+| Banking API | ✅ Реализован |
+| ML model serving | 🔲 Planned (Phase 9) |
+| Label feedback loop | 🔲 Planned (Phase 10) |
+| Production benchmarks | 🔲 Не опубликованы |
+
+> Проект ориентирован на **горизонтально масштабируемые потоковые нагрузки** через consumer groups и партиционирование по `card_id`. Цифры пропускной способности зависят от конфигурации кластера и размера батча — публичных измерений пока нет.
+
+
 
 ### Требования
 
