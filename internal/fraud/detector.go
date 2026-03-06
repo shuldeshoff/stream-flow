@@ -1,3 +1,12 @@
+// Package fraud provides antifraud primitives for the banking pipeline.
+//
+// # Architecture
+//
+// Use [Engine] for all new code — it runs a full 4-layer pipeline:
+// pre-checks → feature snapshot → configurable rule engine → risk scoring.
+//
+// [FraudDetector] is kept for reference only and is no longer wired into
+// the main runtime or the Banking API. It will be removed in a future release.
 package fraud
 
 import (
@@ -10,7 +19,10 @@ import (
 	"github.com/shuldeshoff/stream-flow/internal/cache"
 )
 
-// FraudDetector детектирует мошенничество в банковских транзакциях
+// FraudDetector is a legacy rule-based detector.
+//
+// Deprecated: use Engine instead. FraudDetector is no longer wired into
+// the runtime and will be removed in a future release.
 type FraudDetector struct {
 	cache    *cache.RedisCache
 	rules    []Rule

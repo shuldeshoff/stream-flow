@@ -277,7 +277,7 @@ func main() {
 	if bankingPort == 0 {
 		bankingPort = cfg.Server.Port + 4
 	}
-	bankingAPI := banking.NewBankingAPI(bankingPort, proc, redisCache)
+	bankingAPI := banking.NewBankingAPI(bankingPort, proc, redisCache, fraudEngine)
 	go func() {
 		if err := bankingAPI.Start(); err != nil {
 			log.Error().Err(err).Msg("Banking API server failed")
